@@ -1,8 +1,7 @@
 import torch   
 import matplotlib.pyplot as plt
 from model import ShallowMLP
-import dataset
-
+from dataset import JetEnergyCorrectionDataset
 def load_model(save_path='/models/best_model_jecs.pt', model_class=None):
     checkpoint = torch.load(save_path,map_location=torch.device('cpu') )
 
@@ -19,8 +18,9 @@ def main():
 
     criterion = torch.nn.MSELoss()
 
-    x_vali_0, y_vali_0, x_test_0, y_test_0, train_dl, vali_dl, scaler_x, scaler_y = dataset.load()
-
+    jet_data = JetEnergyCorrectionDataset(amount=0.1, cache_dir='~/.energyflow', dataset='sim', subdatasets=None)
+    x_test_0 = jet_data.x_test_0
+    y_test_0 = jet_data.y_test_0
     x_test_tensor = torch.tensor(x_test_0, dtype=torch.float32)
     y_test_tensor = torch.tensor(y_test_0, dtype=torch.float32)
 
@@ -36,6 +36,16 @@ def main():
     plt.title('Regression Results')
     plt.plot([min(y_test_tensor.numpy().flatten()), max(y_test_tensor.numpy().flatten())], [min(y_test_tensor.numpy().flatten()), max(y_test_tensor.numpy().flatten())], color='red')  # Perfect fit line
     plt.colorbar(label='Counts')
+    plt.show()
+
+    residuals = y_test_tensor.numpy().flatten()-y_pred_tensor.numpy().flatten()
+
+    plt.figure(figsize=(10, 5))
+    plt.hist(residuals, bins=50, alpha=0.75, color='blue', edgecolor='black')
+    plt.axvline(x=0, color='red', linestyle='--')
+    plt.xlabel('Residuals')
+    plt.ylabel('Frequency')
+    plt.title('Histogram of Residuals')
     plt.show()
 
 if __name__ == '__main__':

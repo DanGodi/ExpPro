@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
+from dataset import JetEnergyCorrectionDataset
 import os
 
 dirname= os.path.dirname(__file__)
@@ -99,11 +100,11 @@ def train(model:nn.Module, train_dl:torch.utils.data.DataLoader, vali_dl:torch.u
 
 if __name__ == '__main__':
     from model import ShallowMLP
-    import dataset
 
     model = ShallowMLP()
     model.to(device)
 
-    x_vali_0, y_vali_0, x_test_0, y_test_0, train_dl, vali_dl, scaler_x, scaler_y = dataset.load()
-
+    jet_dataset = JetEnergyCorrectionDataset()
+    train_dl = jet_dataset.train_dl
+    vali_dl = jet_dataset.vali_dl
     train(model, train_dl, vali_dl)
