@@ -2,9 +2,10 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
+from dataset import JetEnergyCorrectionDataset
 import os
 
-dirname= os.path.dirname(__file__)
+dirname= os.path.dirname(os.path.dirname(__file__))
 filename = os.path.join(dirname,'models','current_trial', 'best_model_jecs.pt')
 
 if torch.cuda.is_available():
@@ -44,8 +45,9 @@ class SaveBestModel:
 
 
 
-def train(model:nn.Module, train_dl:torch.utils.data.DataLoader, vali_dl:torch.utils.data.DataLoader,criterion=nn.MSELoss(), num_epochs:int=40):
-    
+def train(model:nn.Module, jet_dataset: JetEnergyCorrectionDataset,criterion=nn.MSELoss(), num_epochs:int=40):
+    train_dl = jet_dataset.train_dl
+    vali_dl = jet_dataset.vali_dl
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     save_best_model = SaveBestModel()
@@ -98,12 +100,11 @@ def train(model:nn.Module, train_dl:torch.utils.data.DataLoader, vali_dl:torch.u
     plt.show()
 
 if __name__ == '__main__':
-    from model import ShallowMLP
-    import dataset
+    from jecs.j_model import ShallowMLP
 
     model = ShallowMLP()
     model.to(device)
 
-    x_vali_0, y_vali_0, x_test_0, y_test_0, train_dl, vali_dl, scaler_x, scaler_y = dataset.load()
+    jet_dataset = JetEnergyCorrectionDataset()
 
-    train(model, train_dl, vali_dl)
+    train(model, jet_dataset)
