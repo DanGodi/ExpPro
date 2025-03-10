@@ -11,7 +11,7 @@ class JetEnergyCorrectionDataset(TensorDataset):
         self.__load(amount, cache_dir, dataset, subdatasets)
 
     def __len__(self):
-        return len(self.train_dl)+len(self.vali_dl)+len(self.test_dl)
+        return len(self.train_dl.dataset)+len(self.vali_dl.dataset)+len(self.x_test_0)
     
     def __getitem__(self, idx):
         if idx < len(self.train_dl.dataset):
@@ -20,7 +20,7 @@ class JetEnergyCorrectionDataset(TensorDataset):
             return self.vali_dl.dataset[idx - len(self.train_dl.dataset)]
         else:
             idx -= len(self.train_dl.dataset) + len(self.vali_dl.dataset)
-            return self.test_dl.dataset[idx]
+            return self.x_test_0[idx]
 
     def __load(self,amount=0.1, cache_dir='~/.energyflow', dataset='sim', subdatasets=None):
         pts = []
