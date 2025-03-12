@@ -1,7 +1,7 @@
 import torch   
 import os
 import matplotlib.pyplot as plt
-from dataset import JetEnergyCorrectionDataset, load_jet_energy_flow_dataset
+from dataset import JetEnergyCorrectionDataset, load_jet_energy_flow_dataset, load_scaler
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 
@@ -80,19 +80,21 @@ def plot_jecs_by_bins(jets_dataset:JetEnergyCorrectionDataset, model:torch.nn.Mo
         plt.show()
 
 
-def run(jet_data=None):
+def run(x,y):
     from j_model import ShallowMLP
     from matplotlib.colors import LogNorm
-    x=ShallowMLP()
+    from sklearn.preprocessing import StandardScaler
     model= load_model(filename, model_class=lambda: ShallowMLP())
     model.to('cpu')
     model.eval()
 
     criterion = torch.nn.MSELoss()
-    if not jet_data:
-        jet_data = load_jet_energy_flow_dataset(amount=0.1, cache_dir='~/.energyflow', dataset='sim', subdatasets=None)
-    x_test_0 = jet_data.x_test_0
-    y_test_0 = jet_data.y_test_0
+    
+    scaler_x,scaler_y = load_scaler()
+
+    x_test_0 = scaler_x.transform(x)   
+    y_test_0 = scaler_y.transform(y)
+
     x_test_tensor = torch.tensor(x_test_0, dtype=torch.float32)
     y_test_tensor = torch.tensor(y_test_0, dtype=torch.float32)
 

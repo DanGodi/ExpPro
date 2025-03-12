@@ -3,10 +3,13 @@ import numpy as np
 import torch
 import uproot
 import awkward as ak
+import json
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from torch.utils.data import DataLoader, TensorDataset
+import os
 
+dirname= os.path.dirname(os.path.dirname(__file__))
 
 
 def load_energy_flow(amount=0.1, cache_dir='~/.energyflow', dataset='sim', subdatasets=None):
@@ -81,11 +84,11 @@ class JetEnergyCorrectionDataset(TensorDataset):
 
         x_train_0 = self.scaler_x.fit_transform(x_train_0)
         self.x_vali_0 = self.scaler_x.transform(x_vali_0)
-        self.x_test_0 = self.scaler_x.transform(x_test_0)
+        #self.x_test_0 = self.scaler_x.transform(x_test_0)
 
         y_train_0 = self.scaler_y.fit_transform(y_train_0.reshape(-1, 1)).flatten()
         self.y_vali_0 = self.scaler_y.transform(y_vali_0.reshape(-1, 1)).flatten()
-        self.y_test_0 = self.scaler_y.transform(y_test_0.reshape(-1, 1)).flatten()
+        #self.y_test_0 = self.scaler_y.transform(y_test_0.reshape(-1, 1)).flatten()
 
         x_train = torch.tensor(x_train_0[:, :-1], dtype=torch.float32)
         y_train = torch.tensor(y_train_0, dtype=torch.float32)
@@ -98,6 +101,37 @@ class JetEnergyCorrectionDataset(TensorDataset):
 
         vali_ds = TensorDataset(x_vali, y_vali)
         self.vali_dl = DataLoader(vali_ds, batch_size=512, shuffle=True)
+
+def save_scaler(scaler_x,scaler_y):
+    mean_x=scaler_x.mean_.tolist()
+    var_x=scaler_x.var_.tolist()
+    mean_y=scaler_y.mean_.tolist()
+    var_y=scaler_y.var_.tolist()
+
+    filename = os.path.join(dirname,'models', 'scaler.json')
+
+    with open(filename, 'w') as f:
+        json.dump({'mean_x':mean_x, 'var_x':var_x, 'mean_y':mean_y, 'var_y':var_y}, f)
+
+def load_scaler():
+    filename = os.path.join(dirname,'models', 'scaler.json')
+    with open(filename, 'r') as f:
+        data = json.load(f)
+        mean_x = data['mean_x']
+        var_x = data['var_x']
+        mean_y = data['mean_y']
+        var_y = data['var_y']
+    scaler_x = StandardScaler()
+    scaler_y = StandardScaler()
+    scaler_x.mean_ = np.array(mean_x)
+    scaler_x.var_ = np.array(var_x)
+    scaler_y.mean_ = np.array(mean_y)
+    scaler_y.var_ = np.array(var_y)
+    scaler_x.scale_ = np.sqrt(scaler_x.var_)
+    scaler_y.scale_ = np.sqrt(scaler_y.var_)
+    return scaler_x, scaler_y
+
+
 
 
 def load_jet_energy_flow_dataset(amount=0.1, cache_dir='~/.energyflow', dataset='sim', subdatasets=None)->JetEnergyCorrectionDataset:
