@@ -1,7 +1,7 @@
 import torch   
 import os
 import matplotlib.pyplot as plt
-from dataset import JetEnergyCorrectionDataset
+from dataset import JetEnergyCorrectionDataset, load_jet_energy_flow_dataset
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 
@@ -89,7 +89,7 @@ def run(jet_data=None):
 
     criterion = torch.nn.MSELoss()
     if not jet_data:
-        jet_data = JetEnergyCorrectionDataset(amount=0.1, cache_dir='~/.energyflow', dataset='sim', subdatasets=None)
+        jet_data = load_jet_energy_flow_dataset(amount=0.1, cache_dir='~/.energyflow', dataset='sim', subdatasets=None)
     x_test_0 = jet_data.x_test_0
     y_test_0 = jet_data.y_test_0
     x_test_tensor = torch.tensor(x_test_0, dtype=torch.float32)
