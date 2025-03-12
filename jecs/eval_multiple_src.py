@@ -93,7 +93,7 @@ def run(x,y):
     scaler_x,scaler_y = load_scaler()
 
     x_test_0 = scaler_x.transform(x)   
-    y_test_0 = scaler_y.transform(y)
+    y_test_0 = scaler_y.transform(y.reshape(-1, 1)).flatten()
 
     x_test_tensor = torch.tensor(x_test_0, dtype=torch.float32)
     y_test_tensor = torch.tensor(y_test_0, dtype=torch.float32)
