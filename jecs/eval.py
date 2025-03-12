@@ -82,6 +82,7 @@ def plot_jecs_by_bins(jets_dataset:JetEnergyCorrectionDataset, model:torch.nn.Mo
 
 def run(jet_data=None):
     from j_model import ShallowMLP
+    from matplotlib.colors import LogNorm
     x=ShallowMLP()
     model= load_model(filename, model_class=lambda: ShallowMLP())
     model.to('cpu')
@@ -101,7 +102,7 @@ def run(jet_data=None):
     print(f"Test MSE: {test_loss}")
 
     plt.figure(figsize=(8, 8))
-    plt.hist2d(y_test_tensor.numpy().flatten(), y_pred_tensor.numpy().flatten(), bins=150, cmap='viridis')
+    plt.hist2d(y_test_tensor.numpy().flatten(), y_pred_tensor.numpy().flatten(), bins=150, cmap='viridis',norm=LogNorm())
     plt.xlabel('True Values')
     plt.ylabel('Predicted Values')
     plt.title('Regression Results')
