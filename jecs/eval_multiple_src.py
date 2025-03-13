@@ -6,7 +6,7 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 
 dirname= os.path.dirname(os.path.dirname(__file__))
-filename = os.path.join(dirname,'models', 'best_model_jecs.pt')
+filename = os.path.join(dirname,'models','current_trial', 'best_model_jecs.pt')
 
 def load_model(save_path=filename, model_class=None):
     checkpoint = torch.load(save_path,map_location=torch.device('cpu') )
