@@ -15,7 +15,6 @@ dirname= os.path.dirname(os.path.dirname(__file__))
 def load_energy_flow(amount=0.1, cache_dir='~/.energyflow', dataset='sim', subdatasets=None):
     pts = []
     etas = []
-    gen_pts = []
     area=[]
     npvs=[]
     jec=[]
@@ -28,10 +27,9 @@ def load_energy_flow(amount=0.1, cache_dir='~/.energyflow', dataset='sim', subda
         etas.append(data.jet_etas[j])
         area.append(data.jet_areas[j])
         npvs.append(data.npvs[j])
-        gen_pts.append(data.gen_jet_pts[j])
         jec.append(data.jecs[j])
     
-    return pts, etas, area, npvs, gen_pts, jec
+    return pts, etas, area, npvs, jec
 
 def _dump_root_jets(fp, max_N_jets_per_event=10, lib='np'):
     with uproot.open(fp) as f:
@@ -49,15 +47,14 @@ def load_root_files(filenames):
         etas = np.hstack(jets['jet_eta'])
         areas = np.hstack(jets['jet_area'])
         npvs = np.hstack(jets['jet_npv'])
-        gen_pts = np.zeros(len(pts)) # zero for now later maybe we do matching
         jec = np.hstack(jets['jet_jec'])
-        yield pts, etas, areas, npvs, gen_pts, jec
+        yield pts, etas, areas, npvs, jec
         
 
 
 class JetEnergyCorrectionDataset(TensorDataset):
-    def __init__(self, pts, etas, area, npvs, gen_pts, jec):
-        self.__load(pts, etas, area, npvs, gen_pts, jec)
+    def __init__(self, pts, etas, area, npvs, jec, batch_size=512,device:str='cpu'):
+        self.__load(pts, etas, area, npvs,  jec, batch_size,device)
 
     def __len__(self):
         return len(self.train_dl.dataset)+len(self.vali_dl.dataset)+len(self.x_test_0)
@@ -72,8 +69,8 @@ class JetEnergyCorrectionDataset(TensorDataset):
             return self.x_test_0[idx]
         
 
-    def __load(self,pts, etas, area, npvs,gen_pts, jec):
-        x=np.transpose(np.array([pts,etas,area,npvs,gen_pts]))
+    def __load(self,pts, etas, area, npvs, jec, batch_size,device):
+        x=np.transpose(np.array([pts,etas,area,npvs]))
         y=np.array(jec)
 
         x_train_0, x_test_0, y_train_0, y_test_0 = train_test_split(x, y, test_size=0.2, shuffle=True)
@@ -84,23 +81,23 @@ class JetEnergyCorrectionDataset(TensorDataset):
 
         x_train_0 = self.scaler_x.fit_transform(x_train_0)
         self.x_vali_0 = self.scaler_x.transform(x_vali_0)
-        #self.x_test_0 = self.scaler_x.transform(x_test_0)
+        self.x_test_0 = self.scaler_x.transform(x_test_0)
 
         y_train_0 = self.scaler_y.fit_transform(y_train_0.reshape(-1, 1)).flatten()
         self.y_vali_0 = self.scaler_y.transform(y_vali_0.reshape(-1, 1)).flatten()
-        #self.y_test_0 = self.scaler_y.transform(y_test_0.reshape(-1, 1)).flatten()
+        self.y_test_0 = self.scaler_y.transform(y_test_0.reshape(-1, 1)).flatten()
 
-        x_train = torch.tensor(x_train_0[:, :-1], dtype=torch.float32)
+        x_train = torch.tensor(x_train_0, dtype=torch.float32)
         y_train = torch.tensor(y_train_0, dtype=torch.float32)
 
         train_ds = TensorDataset(x_train, y_train)
-        self.train_dl = DataLoader(train_ds, batch_size=512, shuffle=True)
+        self.train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=True)
 
         y_vali = torch.tensor(self.y_vali_0, dtype=torch.float32)
-        x_vali = torch.tensor(self.x_vali_0[:, :-1], dtype=torch.float32)
+        x_vali = torch.tensor(self.x_vali_0, dtype=torch.float32)
 
         vali_ds = TensorDataset(x_vali, y_vali)
-        self.vali_dl = DataLoader(vali_ds, batch_size=512, shuffle=True)
+        self.vali_dl = DataLoader(vali_ds, batch_size=batch_size, shuffle=True, num_workers=1, pin_memory=True)
 
 def save_scaler(scaler_x,scaler_y):
     mean_x=scaler_x.mean_.tolist()
@@ -135,5 +132,5 @@ def load_scaler():
 
 
 def load_jet_energy_flow_dataset(amount=0.1, cache_dir='~/.energyflow', dataset='sim', subdatasets=None)->JetEnergyCorrectionDataset:
-    pts, etas, area, npvs, gen_pts, jec = load_energy_flow(amount=amount, cache_dir=cache_dir, dataset=dataset, subdatasets=subdatasets)
-    return JetEnergyCorrectionDataset(pts, etas, area, npvs, gen_pts, jec)
+    pts, etas, area, npvs, jec = load_energy_flow(amount=amount, cache_dir=cache_dir, dataset=dataset, subdatasets=subdatasets)
+    return JetEnergyCorrectionDataset(pts, etas, area, npvs, jec)

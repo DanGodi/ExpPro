@@ -6,7 +6,7 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 
 dirname= os.path.dirname(os.path.dirname(__file__))
-filename = os.path.join(dirname,'models', 'best_model_jecs.pt')
+filename = os.path.join(dirname,'models','current_trial', 'best_model_jecs.pt')
 
 def load_model(save_path=filename, model_class=None):
     checkpoint = torch.load(save_path,map_location=torch.device('cpu') )
@@ -26,7 +26,7 @@ def plot_jecs_by_bins(jets_dataset:JetEnergyCorrectionDataset, model:torch.nn.Mo
     scaler_x = jets_dataset.scaler_x
     scaler_y = jets_dataset.scaler_y
 
-    bins=np.array([300,470,600,800,1000,1400,1800,3000])
+    bins=np.array([0,100,200,300,500])
 
     x_test_vali = np.concatenate((x_test_0, x_vali_0), axis=0)
     y_test_vali = np.concatenate((y_test_0, y_vali_0), axis=0)
@@ -36,7 +36,7 @@ def plot_jecs_by_bins(jets_dataset:JetEnergyCorrectionDataset, model:torch.nn.Mo
     for i in range(len(bins) - 1):
         mask = (np.array(mask_variable) >= bins[i]) & (np.array(mask_variable) < bins[i + 1])
         
-        x_bin = x_test_vali[mask][:, :-1]
+        x_bin = x_test_vali[mask]
         x_bin_tensor = torch.tensor(x_bin, dtype=torch.float32).to(device)
 
         with torch.no_grad():
@@ -47,35 +47,40 @@ def plot_jecs_by_bins(jets_dataset:JetEnergyCorrectionDataset, model:torch.nn.Mo
         x_prime = scaler_x.inverse_transform(x_test_vali[mask])
         y_prime = scaler_y.inverse_transform(y_test_vali[mask].reshape(-1, 1)).flatten()
         pts_bin = np.array(x_prime[:,0])
-        gen_pts_bin = np.array(x_prime[:,4])
         jec_bin = np.array(y_prime)
         etas_bin = np.array(x_prime[:,1])
 
         
-        fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+        fig, ax = plt.subplots(1, 3, figsize=(10, 5))
 
-        ax[0].hist(pts_bin / gen_pts_bin, bins=np.linspace(0.7, 1.3, 200), histtype="step", color="red", label="raw")
+        
         ax[0].hist(jec_bin, bins=np.linspace(0.7, 1.3, 200), histtype="step", color="blue", label="JEC factor")
-        ax[0].hist(pts_bin * jec_bin / gen_pts_bin, bins=np.linspace(0.7, 1.3, 200), histtype="step", color="purple", label="corrected")
         ax[0].hist(jec_pred, bins=np.linspace(0.7, 1.3, 200), histtype="step", color="green", label="JEC predicted")
-        ax[0].hist(pts_bin * jec_pred / gen_pts_bin, bins=np.linspace(0.7, 1.3, 200), histtype="step", color="orange", label="corrected predicted")
-        ax[0].set_xlabel("Jet $p_T$ / Gen Jet $p_T$")
+        ax[0].set_xlabel("jec")
         ax[0].set_ylabel("Number of Jets")
         ax[0].set_title(f"Bin {bins[i]}-{bins[i + 1]}")
         ax[0].legend()
 
-        h2 = ax[1].hist2d(pts_bin * jec_bin / gen_pts_bin, etas_bin, 
-                        bins=[np.linspace(0.7, 1.3, 200), np.linspace(-4, 4, 200)], cmap='Reds', alpha=1, label="corrected")
+        ax[1].hist(pts_bin, bins=200, histtype="step", color="red", label="raw")
+        ax[1].hist(pts_bin * jec_bin, bins=200, histtype="step", color="purple", label="corrected")
+        ax[1].hist(pts_bin * jec_pred, bins=200, histtype="step", color="orange", label="corrected predicted")
+        ax[1].set_xlabel("Jet $p_T$")
+        ax[1].set_ylabel("Number of Jets")
+        ax[1].set_title(f"Bin {bins[i]}-{bins[i + 1]}")
+        ax[1].legend()
 
-        h3 = ax[1].hist2d(pts_bin * jec_pred / gen_pts_bin, etas_bin, 
-                        bins=[np.linspace(0.7, 1.3, 200), np.linspace(-4, 4, 200)], cmap='Greens', alpha=0.6, label="corrected predicted")
+        h2 = ax[2].hist2d(pts_bin * jec_bin, etas_bin, 
+                        bins=[200, 200], cmap='Reds', alpha=1, label="corrected")
 
-        ax[1].set_xlabel("Jet $p_T$ / Gen Jet $p_T$")
-        ax[1].set_ylabel("Jet $\eta$")
-        ax[1].set_title(f"Bin {bins[i]}-{bins[i + 1]} pT std={np.std(pts_bin / gen_pts_bin):.3f} eta std={np.std(etas_bin):.3f}")
+        h3 = ax[2].hist2d(pts_bin * jec_pred, etas_bin, 
+                        bins=[200,200], cmap='Greens', alpha=0.6, label="corrected predicted")
 
-        plt.colorbar(h2[3], ax=ax[1], label='corrected')
-        plt.colorbar(h3[3], ax=ax[1], label='corrected predicted')
+        ax[2].set_xlabel("Jet $p_T$")
+        ax[2].set_ylabel("Jet $\eta$")
+        ax[2].set_title(f"Bin {bins[i]}-{bins[i + 1]} pT std={np.std(pts_bin):.3f} eta std={np.std(etas_bin):.3f}")
+
+        plt.colorbar(h2[3], ax=ax[2], label='corrected')
+        plt.colorbar(h3[3], ax=ax[2], label='corrected predicted')
 
         plt.show()
 
@@ -97,7 +102,7 @@ def run(jet_data=None):
     y_test_tensor = torch.tensor(y_test_0, dtype=torch.float32)
 
     with torch.no_grad():
-        y_pred_tensor = model(x_test_tensor[:,:-1])
+        y_pred_tensor = model(x_test_tensor)
         test_loss = criterion(y_pred_tensor, y_test_tensor.unsqueeze(1)).item()
     print(f"Test MSE: {test_loss}")
 

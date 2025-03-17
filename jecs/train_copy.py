@@ -40,8 +40,9 @@ def train(model:nn.Module, jet_dataset: JetEnergyCorrectionDataset,criterion=nn.
     model=model.to(device)
     train_dl = jet_dataset.train_dl
     vali_dl = jet_dataset.vali_dl
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
-
+    optimizer = optim.Adam(model.parameters(), lr=0.01)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.6, patience=1,min_lr= 0.001 , verbose=True)
+    
     save_best_model = SaveBestModel()
 
     train_losses = []
@@ -62,6 +63,8 @@ def train(model:nn.Module, jet_dataset: JetEnergyCorrectionDataset,criterion=nn.
         
         train_loss = running_loss / len(train_dl.dataset)
         train_losses.append(train_loss)
+
+        scheduler.step(train_loss)
         
         #validation step
         model.eval()
@@ -95,7 +98,6 @@ if __name__ == '__main__':
     from jecs.j_model import ShallowMLP
 
     model = ShallowMLP()
-    model.to(device)
 
     jet_dataset = JetEnergyCorrectionDataset()
 

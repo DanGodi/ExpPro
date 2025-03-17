@@ -36,7 +36,7 @@ def run(x,y):
     y_test_tensor = torch.tensor(y_test_0, dtype=torch.float32)
 
     with torch.no_grad():
-        y_pred_tensor = model(x_test_tensor[:,:-1])
+        y_pred_tensor = model(x_test_tensor)
         test_loss = criterion(y_pred_tensor, y_test_tensor.unsqueeze(1)).item()
     print(f"Test MSE: {test_loss}")
 
@@ -61,6 +61,97 @@ def run(x,y):
     plt.title('Histogram of Residuals')
     plt.show()
 
+    plot_jecs_by_bins(x,y, model, 'cpu',scaler_x,scaler_y)
+
+def plot_jecs_by_bins(x,y, model:torch.nn.Module, device:str,scaler_x:StandardScaler,scaler_y:StandardScaler):
+
+    scaler_x,scaler_y = load_scaler()
+    mask_variable=x[:,0]
+
+    x = scaler_x.transform(x)   
+
+    bins=np.array([0,50,100,150,250,550,2000])
+
+    for i in range(len(bins) - 1):
+        mask = (np.array(mask_variable) >= bins[i]) & (np.array(mask_variable) < bins[i + 1])
+
+        x_bin = x[mask]
+        y_bin= y[mask]
+        x_bin_tensor = torch.tensor(x_bin, dtype=torch.float32).to(device)
+
+        with torch.no_grad():
+            jec_pred_tensor = model(x_bin_tensor).cpu().numpy().flatten()
+
+        jec_pred = scaler_y.inverse_transform(jec_pred_tensor.reshape(-1, 1)).flatten()
+
+        x_prime = scaler_x.inverse_transform(x_bin)
+
+        pts_bin = np.array(x_prime[:, 0])
+        jec_bin = np.array(y_bin)
+        etas_bin = np.array(x_prime[:, 1])
+
+        fig, ax = plt.subplots(1, 3, figsize=(15, 5))
+
+        ax[0].hist(jec_bin, bins=np.linspace(0.7, 1.3, 200), histtype="step", color="blue", label="JEC factor")
+        ax[0].hist(jec_pred, bins=np.linspace(0.7, 1.3, 200), histtype="step", color="green", label="JEC predicted")
+        ax[0].set_xlabel("jec")
+        ax[0].set_ylabel("Number of Jets")
+        ax[0].set_title(f"Bin {bins[i]}-{bins[i + 1]}")
+        ax[0].legend()
+
+        ax[1].hist(pts_bin, bins=200, histtype="step", color="red", label="raw")
+        ax[1].hist(pts_bin * jec_bin, bins=200, histtype="step", color="purple", label="corrected")
+        ax[1].hist(pts_bin * jec_pred, bins=200, histtype="step", color="orange", label="corrected predicted")
+        ax[1].set_xlabel("Jet $p_T$")
+        ax[1].set_ylabel("Number of Jets")
+        ax[1].set_title(f"Bin {bins[i]}-{bins[i + 1]}")
+        ax[1].legend()
+
+        h2 = ax[2].hist2d(pts_bin * jec_bin, etas_bin, bins=[200, 200], cmap='Reds', alpha=1, label="corrected")
+        h3 = ax[2].hist2d(pts_bin * jec_pred, etas_bin, bins=[200, 200], cmap='Greens', alpha=0.6, label="corrected predicted")
+
+        ax[2].set_xlabel("Jet $p_T$")
+        ax[2].set_ylabel("Jet $\eta$")
+        ax[2].set_title(f"Bin {bins[i]}-{bins[i + 1]} pT std={np.std(pts_bin):.3f} eta std={np.std(etas_bin):.3f}")
+
+        plt.colorbar(h2[3], ax=ax[2], label='corrected')
+        plt.colorbar(h3[3], ax=ax[2], label='corrected predicted')
+
+        plt.show()
+
+    '''
+
+    for i in range(len(bins) - 1):
+        mask = (np.array(mask_variable) >= bins[i]) & (np.array(mask_variable) < bins[i + 1])
+        
+        x_bin = x[mask][:, :-1]
+        x_bin_tensor = torch.tensor(x_bin, dtype=torch.float32).to(device)
+
+        with torch.no_grad():
+            jec_pred_tensor = model(x_bin_tensor).cpu().numpy().flatten()
+        
+        jec_pred = scaler_y.inverse_transform(jec_pred_tensor.reshape(-1, 1)).flatten()
+
+        x_prime = scaler_x.inverse_transform(x[mask])
+        y_prime = scaler_y.inverse_transform(y[mask].reshape(-1, 1)).flatten()
+        pts_bin = np.array(x_prime[:,0])
+        jec_bin = np.array(y_prime)
+        etas_bin = np.array(x_prime[:,1])
+
+        
+        fig, ax = plt.subplots(1, 1, figsize=(10, 5))
+
+        ax.hist(pts_bin/ max(pts_bin), bins=np.linspace(0.7, 1.3, 200), histtype="step", color="red", label="raw")
+        ax.hist(jec_bin, bins=np.linspace(0.7, 1.3, 200), histtype="step", color="blue", label="JEC factor")
+        ax.hist(pts_bin * jec_bin / max(pts_bin), bins=np.linspace(0.7, 1.3, 200), histtype="step", color="purple", label="corrected")
+        ax.hist(jec_pred, bins=np.linspace(0.7, 1.3, 200), histtype="step", color="green", label="JEC predicted")
+        ax.hist(pts_bin * jec_pred / max (pts_bin), bins=np.linspace(0.7, 1.3, 200), histtype="step", color="orange", label="corrected predicted")
+        ax.set_xlabel("Jet $p_T$ ")
+        ax.set_ylabel("Number of Jets")
+        ax.set_title(f"Bin {bins[i]}-{bins[i + 1]}")
+        ax.legend()
+        plt.show()
+'''
 
 if __name__ == '__main__':
     pass
