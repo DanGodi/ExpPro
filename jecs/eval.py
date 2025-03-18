@@ -26,7 +26,7 @@ def plot_jecs_by_bins(jets_dataset:JetEnergyCorrectionDataset, model:torch.nn.Mo
     scaler_x = jets_dataset.scaler_x
     scaler_y = jets_dataset.scaler_y
 
-    bins=np.array([0,100,200,300,500])
+    bins=np.array([0,100,200,300,500,2000])
 
     x_test_vali = np.concatenate((x_test_0, x_vali_0), axis=0)
     y_test_vali = np.concatenate((y_test_0, y_vali_0), axis=0)
