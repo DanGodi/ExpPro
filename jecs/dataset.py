@@ -110,8 +110,9 @@ def save_scaler(scaler_x,scaler_y):
     with open(filename, 'w') as f:
         json.dump({'mean_x':mean_x, 'var_x':var_x, 'mean_y':mean_y, 'var_y':var_y}, f)
 
-def load_scaler():
-    filename = os.path.join(dirname,'models', 'current_trial','scaler.json')
+def load_scaler(filename=None):
+    if filename is None:
+        filename = os.path.join(dirname,'models', 'current_trial','scaler.json')
     with open(filename, 'r') as f:
         data = json.load(f)
         mean_x = data['mean_x']
