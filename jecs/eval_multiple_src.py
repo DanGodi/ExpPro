@@ -17,13 +17,14 @@ def load_model(save_path=filename, model_class=None):
 
     return model
 
-def run(x,y):
+def run(x,y, model=None):
     from j_model import ShallowMLP
     from matplotlib.colors import LogNorm
     from sklearn.preprocessing import StandardScaler
-    model= load_model(filename, model_class=lambda: ShallowMLP())
-    model.to('cpu')
-    model.eval()
+    if model is None:
+        model= load_model(filename, model_class=lambda: ShallowMLP())
+        model.to('cpu')
+        model.eval()
 
     criterion = torch.nn.MSELoss()
     
