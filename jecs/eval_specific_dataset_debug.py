@@ -17,7 +17,7 @@ def load_model(save_path=filename, model_class=None):
 
     return model
 
-def run(x,y, model=None,scalers=None):
+def run(x,y, model=None):
     from j_model import ShallowMLP
     from matplotlib.colors import LogNorm
     from sklearn.preprocessing import StandardScaler
@@ -27,10 +27,8 @@ def run(x,y, model=None,scalers=None):
         model.eval()
 
     criterion = torch.nn.MSELoss()
-    if scalers is None:
-        scaler_x,scaler_y = load_scaler()
-    else:
-        scaler_x,scaler_y = scalers
+    
+    scaler_x,scaler_y = load_scaler()
 
     x_test_0 = scaler_x.transform(x)   
     y_test_0 = scaler_y.transform(y.reshape(-1, 1)).flatten()
